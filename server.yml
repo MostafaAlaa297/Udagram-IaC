@@ -203,9 +203,15 @@ Resources:
       - Name: InstanceId
         Value:
           Ref: "MyAppLaunchConfig"
-Outputs: 
+Outputs:
+  LoadBalancer:
+        Description: A reference to the Application Load Balancer
+        Value: !Ref MyAppLB
   MyAppLBDns: 
         Description: A reference to the load balancer DNS URL
-        Value: "http://udagr-myapp-19yrnuzpc7gl6-1490945374.us-east-1.elb.amazonaws.com/"
+        Value: !Join [ "", [ 'http://', !GetAtt MyAppLB.DNSName ]]
         Export:
           Name: !Sub ${EnvironmentName}-LB-DNS
+  Listener:
+        Description: A reference to a port 80 listener
+        Value: !Ref Listener        
