@@ -6,6 +6,9 @@ Parameters:
     Description: Amazon machine image ID to use
     Type: String
     Default: ami-0574da719dca65348
+  myLaunchTemplateVersionNumber:
+      Type: String
+      Default: 1
 Resources:
   UdacityS3FullAccessEC2:
     Type: AWS::IAM::Role
@@ -82,26 +85,26 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 45.246.212.11/32
-  MyAppLaunchConfig:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  myAppLaunchTemp:
+    Type: AWS::EC2::LaunchTemplate
     Properties:
-      UserData: 
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          apt-get update -y
-          apt-get install apache2 -y
-          systemctl start apache2.service
-          cd /var/www/html
-          echo "it works! Udagram, Udacity" > index.html
-      ImageId: !Ref AMIToUse
-      SecurityGroups:
-        - !Ref ServerSecGroup
-      InstanceType: t3.medium
-      InstanceMonitoring: true
-      BlockDeviceMappings:
-        - DeviceName: "/dev/sdc"
-          Ebs:
-            VolumeSize: '10'
+      LaunchTemplateData:
+        UserData: 
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            apt-get update -y
+            apt-get install apache2 -y
+            systemctl start apache2.service
+            cd /var/www/html
+            echo "it works! Udagram, Udacity" > index.html
+        ImageId: !Ref AMIToUse
+        SecurityGroupIds:
+          - !Ref ServerSecGroup
+        InstanceType: t3.medium
+        BlockDeviceMappings:
+          - DeviceName: "/dev/sdc"
+            Ebs:
+              VolumeSize: '10'
   BastionServer1:
     Type: AWS::EC2::Instance
     Properties:
@@ -138,8 +141,9 @@ Resources:
       VPCZoneIdentifier:
       - Fn::ImportValue: 
           !Sub "${EnvironmentName}-PRIV-NETS"
-      LaunchConfigurationName:
-        !Ref MyAppLaunchConfig
+      LaunchTemplate:
+        LaunchTemplateId: !Ref myAppLaunchTemp
+        Version: !Ref myLaunchTemplateVersionNumber
       MinSize: '4'
       MaxSize: '6'
       TargetGroupARNs:
@@ -202,7 +206,7 @@ Resources:
       Dimensions:
       - Name: InstanceId
         Value:
-          Ref: "MyAppLaunchConfig"
+          Ref: "myAppLaunchTemp"
 Outputs:
   LoadBalancer:
         Description: A reference to the Application Load Balancer
